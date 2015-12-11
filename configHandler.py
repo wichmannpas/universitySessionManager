@@ -1,4 +1,5 @@
 import sys
+import os.path
 import json
 
 
@@ -7,9 +8,7 @@ class configHandler():
     settings = {}
 
     def __init__(self):
-        userInput = input('[c] Create new config [l] load config: ')
-        if userInput[::1] == 'c':
-            self.createConfig()
+        pass
 
     def createConfig(self):
         fileName = input('Enter filename for configuration: ')
@@ -117,3 +116,11 @@ class configHandler():
             print('successfully wrote config file.')
         else:
             print('Could not save configuration')
+
+    def loadConfig(self, fileName):
+        if not os.path.isfile(fileName):
+            print('invalid file.')
+            sys.exit(1)
+
+        config = open(fileName, 'r')
+        return json.loads(config.read())
