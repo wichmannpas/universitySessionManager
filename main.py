@@ -11,7 +11,7 @@ def main():
     else:
         fileName = input('Enter configuration file name: ')
         configuration = configHandler.configHandler().loadConfig(fileName)
-        priorityHandlerInstance = priorityHandler.priorityHandler(configuration)
+        priorityHandler.priorityHandler(configuration)
 
 if __name__ == '__main__':
     main()
