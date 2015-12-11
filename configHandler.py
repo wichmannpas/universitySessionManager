@@ -109,7 +109,8 @@ class configHandler():
             return 'Sunday'
 
     def saveConfig(self, fileName):
-        fileContent = json.dumps(self.modules)
+        fileContent = json.dumps({'settings': self.settings,
+                                  'modules': self.modules})
 
         config = open(fileName, 'w')
         if config.write(fileContent):

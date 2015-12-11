@@ -8,13 +8,15 @@ class priorityHandler():
     database = sqlite3.connect('tmp.db')  # ':memory:')
     cursor = database.cursor()
     modules = []
-    configuration = {}
+    settings = {}
 
     def __init__(self, configuration):
         self.populateDb()
 
+        self.settings = configuration['settings']
+
         # fill tables with modules from configuration
-        self.populateTables(configuration)
+        self.populateTables(configuration['modules'])
 
         self.generateAllPossibleCombinations()
 
@@ -111,7 +113,6 @@ class priorityHandler():
             self.database.commit()
 
     def generateSchedule(self, combination):
-        print(self.modules)
         i = 0
         for session in combination:
             sessionData = self.getSessionById(i, session[0])
