@@ -108,6 +108,9 @@ class priorityHandler():
 
             # save rating
             rating = self.rateSchedule()
+
+            self.emptySchedule()
+
             self.cursor.execute('UPDATE combinations SET rating=? WHERE id=?',
                                 [rating, combination[0]])
             self.database.commit()
@@ -136,7 +139,57 @@ class priorityHandler():
             i += 1
 
     def rateSchedule(self):
-        pass
+        self.cursor.execute('SELECT * FROM schedule')
+        schedule = self.cursor.fetchall()
+
+        rating = 0  # value will be reduced when collissions are detected
+
+        # check each schedule entry for collisions with other events
+        for entry in schedule:
+            # calculate start time in seconds since midnight
+            startTime = 3600 * int(entry[2]) + 60 * int(entry[4])
+            endTime = 3600 * int(entry[3]) + 60 * int(entry[5])
+            for toCompare in schedule:
+                if entry[0] == toCompare[0] or entry[1] != toCompare[1]:
+                    # do not compare entry with itself and only with sessions on
+                    # same weekday
+                    continue
+            startTimeCompare = 3600 * int(toCompare[2]) + 60 * int(toCompare[4])
+            endTimeCompare = 3600 * int(toCompare[3]) + 60 * int(toCompare[5])
+
+            # check for overlapping
+            rating -= self.calculateRatingReduce([startTime, endTime],
+                                                 [startTimeCompare,
+                                                 endTimeCompare])
+            return rating
+
+    def calculateRatingReduce(self, time, timeCompare):
+        minDifference = self.settings['minDifference']
+        # merge minDifference into times
+        time[0] -= minDifference
+        time[1] += minDifference
+        timeCompare[0] -= minDifference
+        timeCompare[1] += minDifference
+
+        # first case: first entry overlaps second on both sides
+        if time[0] < timeCompare[0] and time[1] > timeCompare[1]:
+            # return left and right overhead
+            return (timeCompare[0] - time[0]) + (time[1] - timeCompare[1])
+        # second case: second entry overlaps first entry on both sides
+        elif timeCompare[0] < time[0] and timeCompare[1] > time[1]:
+            # return left and right overhead
+            return (time[0] - timeCompare[0]) + (timeCompare[1] - time[1])
+        # third case: first entry overlaps second only on the right side
+        elif timeCompare[0] < time[1] and timeCompare[1] > time[0]:
+            # return right overhead of second entry
+            return timeCompare[1] - time[1]
+        # fourth case: first entry overlaps second only on the left side
+        elif timeCompare[0] < time[1] and timeCompare[1] > time[0]:
+            # return left overhead of second entry
+            return time[0] - timeCompare[0]
+        else:
+            # no conflict
+            return 0
 
     def getSessionById(self, moduleId, sessionId):
         sessions = list(self.modules[moduleId].values())[0]['sessions']
