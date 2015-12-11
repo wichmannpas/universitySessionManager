@@ -16,10 +16,9 @@ class configHandler():
 
         print('Settings')
         print('========')
-        self.settings['inputMinDifference'] = int(input('\
-How much time should at \
-least be between two \
-sessions? (in minutes) '))
+        self.settings['minDifference'] = int(input('How much time should at '
+                                                   'least be between two '
+                                                   'sessions? (in minutes) '))
 
         # add all modules
         while True:
@@ -61,6 +60,11 @@ sessions? (in minutes) '))
         session['minute'] = int(input('   Start minute: '))
         session['duration'] = int(input('   Length (in minutes): '))
         module['sessions'].append(session)
+
+        # check that time is valid
+        if session['hour'] > 23 or session['minute'] > 59:
+            print('invalid time.')
+            sys.exit(0)
 
     def printSessions(self, module):
         print(' Overview of sessions in this module')
