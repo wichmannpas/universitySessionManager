@@ -155,7 +155,7 @@ class priorityHandler():
             endTime = 60 * int(entry[3]) + int(entry[5])
 
             # add user rating of session
-            rating += entry[6]
+            rating += int(entry[6] / 10)
 
             # compare item to all other items on same weekday and calculate
             # rating
@@ -168,41 +168,49 @@ class priorityHandler():
                 endTimeCompare = 60 * int(toCompare[3]) + int(toCompare[5])
 
                 # check for overlapping
-                rating -= self.calculateRatingReduce([startTime, endTime],
+                rating -= self.calculateSingleRating([startTime, endTime],
                                                      [startTimeCompare,
                                                      endTimeCompare])
 
         return rating
 
-    def calculateRatingReduce(self, time, timeCompare):
+    def calculateSingleRating(self, time, timeCompare):
         minDifference = self.settings['minDifference']
-        # merge minDifference into times
+        # merge minDifference into times of first event (not to second in order
+        # to not have higher impact (otherwise would count multiple times)
         time[0] -= minDifference
         time[1] += minDifference
-        timeCompare[0] -= minDifference
-        timeCompare[1] += minDifference
+
+        singleRating = 0
 
         # first case: first entry overlaps second on both sides
         if time[0] < timeCompare[0] and time[1] > timeCompare[1]:
             # return left and right overhead
-            return (abs(abs((timeCompare[1] - time[0])) +
-                    abs((time[1] - timeCompare[0]))))
+            singleRating = (abs(abs((timeCompare[1] - time[0])) +
+                            abs((time[1] - timeCompare[0]))))
         # second case: second entry overlaps first entry on both sides
         elif timeCompare[0] < time[0] and timeCompare[1] > time[1]:
             # return left and right overhead
-            return (abs(abs((timeCompare[1] - time[0])) +
-                    abs((time[1] - timeCompare[0]))))
+            singleRating = (abs(abs((timeCompare[1] - time[0])) +
+                            abs((time[1] - timeCompare[0]))))
         # third case: first entry overlaps second only on the right side
         elif timeCompare[0] < time[1] and timeCompare[1] > time[0]:
             # return right overhead of second entry
-            return abs(timeCompare[1] - time[0])
+            singleRating = abs(timeCompare[1] - time[0])
         # fourth case: first entry overlaps second only on the left side
         elif timeCompare[0] < time[1] and timeCompare[1] > time[0]:
             # return left overhead of second entry
-            return abs(time[1] - timeCompare[0])
-        else:
-            # no conflict
-            return 0
+            singleRating = abs(time[1] - timeCompare[0])
+
+        if singleRating > minDifference:
+            # let real collisions have more impact than collisions which only
+            # affect the time frame between events (events overlapping on both
+            # sides will have more impact if they are exceeding the limit on
+            # total (i.e. on both sides for minDifference / 2 or on one side
+            # completely and on the other side not)
+            singleRating = singleRating * 2
+
+        return singleRating
 
     def getSessionById(self, moduleId, sessionId):
         sessions = list(self.modules[moduleId].values())[0]['sessions']
