@@ -35,6 +35,7 @@ class priorityHandler():
                         minute INTEGER,
                         duration INTEGER,
                         userPriority INTEGER,
+                        totalRating INTEGER,
                         priority INTEGER)''')
         self.cursor.execute('''CREATE TABLE combinations
                        (id INTEGER PRIMARY KEY,
@@ -63,11 +64,11 @@ class priorityHandler():
                 # save session
                 self.cursor.execute('''INSERT INTO sessions (module, weekday,
                                     hour, minute, duration, userPriority,
-                                    priority)
-                                    VALUES(?, ?, ?, ?, ?, ?, ?)''',
+                                    totalRating, priority)
+                                    VALUES(?, ?, ?, ?, ?, ?, ?, ?)''',
                                     [i, session['weekday'], session['hour'],
                                      session['minute'], session['duration'],
-                                     session['userPriority'], -1])
+                                     session['userPriority'], 0, -1])
                 sessionDbId = self.cursor.lastrowid
                 moduleWithIds['sessions'].append({sessionDbId: session})
 
@@ -116,6 +117,9 @@ class priorityHandler():
 
             self.cursor.execute('UPDATE combinations SET rating=? WHERE id=?',
                                 [rating, combination[0]])
+
+            self.addRatingToContainingSessions(combination[1], rating)
+
             self.database.commit()
 
     def generateSchedule(self, combination):
@@ -222,3 +226,15 @@ class priorityHandler():
     def emptySchedule(self):
         self.cursor.execute('DELETE FROM schedule')
         self.database.commit()
+
+    def addRatingToContainingSessions(self, combination, rating):
+        for session in json.loads(combination):
+            # get session
+            self.cursor.execute('SELECT * FROM sessions WHERE sessionId=?',
+                                session)
+            previousRating = int(self.cursor.fetchone()[7])
+            newRating = rating + previousRating
+
+            # update session row
+            self.cursor.execute('''UPDATE sessions SET totalRating=?
+                                WHERE sessionId=?''', [newRating, session[0]])
