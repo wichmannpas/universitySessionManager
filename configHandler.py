@@ -58,6 +58,7 @@ class configHandler():
         session['hour'] = int(input('   Start hour: '))
         session['minute'] = int(input('   Start minute: '))
         session['duration'] = int(input('   Length (in minutes): '))
+        session['userPriority'] = int(input('   Preference (0-100): '))
         module['sessions'].append(session)
 
         # check that time is valid

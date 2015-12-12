@@ -34,18 +34,20 @@ class priorityHandler():
                         hour INTEGER,
                         minute INTEGER,
                         duration INTEGER,
+                        userPriority INTEGER,
                         priority INTEGER)''')
         self.cursor.execute('''CREATE TABLE combinations
                        (id INTEGER PRIMARY KEY,
                        combination TEXT,
                        rating INTEGER)''')
         self.cursor.execute('''CREATE TABLE schedule
-                            (id INTEGER PRIMARY KEY,
-                            weekday INTEGER,
-                            hourStart INTEGER,
-                            hourEnd INTEGER,
-                            minuteStart INTEGER,
-                            minuteEnd INTEGER)''')
+                       (id INTEGER PRIMARY KEY,
+                       weekday INTEGER,
+                       hourStart INTEGER,
+                       hourEnd INTEGER,
+                       minuteStart INTEGER,
+                       minuteEnd INTEGER,
+                       userPriority INTEGER)''')
         self.database.commit()
 
     def populateTables(self, configuration):
@@ -60,11 +62,12 @@ class priorityHandler():
             for session in module['sessions']:
                 # save session
                 self.cursor.execute('''INSERT INTO sessions (module, weekday,
-                                    hour, minute, duration, priority)
-                                    VALUES(?, ?, ?, ?, ?, ?)''',
+                                    hour, minute, duration, userPriority,
+                                    priority)
+                                    VALUES(?, ?, ?, ?, ?, ?, ?)''',
                                     [i, session['weekday'], session['hour'],
                                      session['minute'], session['duration'],
-                                     -1])
+                                     session['userPriority'], -1])
                 sessionDbId = self.cursor.lastrowid
                 moduleWithIds['sessions'].append({sessionDbId: session})
 
@@ -127,13 +130,14 @@ class priorityHandler():
                  'duration': sessionData['duration']})
             hourEnd = end['hour']
             minuteEnd = end['minute']
+            userPriority = sessionData['userPriority']
 
             # add session to temporary schedule
             self.cursor.execute('''INSERT INTO schedule (weekday, hourStart,
-                                hourEnd, minuteStart, minuteEnd)
-                                VALUES(?, ?, ?, ?, ?)''', [weekday, hourStart,
-                                                           hourEnd, minuteStart,
-                                                           minuteEnd])
+                                hourEnd, minuteStart, minuteEnd, userPriority)
+                                VALUES(?, ?, ?, ?, ?, ?)''',
+                                [weekday, hourStart, hourEnd, minuteStart,
+                                 minuteEnd, userPriority])
             self.database.commit()
 
             i += 1
@@ -149,6 +153,12 @@ class priorityHandler():
             # calculate start time in minutes since midnight
             startTime = 60 * int(entry[2]) + int(entry[4])
             endTime = 60 * int(entry[3]) + int(entry[5])
+
+            # add user rating of session
+            rating += entry[6]
+
+            # compare item to all other items on same weekday and calculate
+            # rating
             for toCompare in schedule:
                 if entry[0] == toCompare[0] or entry[1] != toCompare[1]:
                     # do not compare entry with itself and only with sessions on
