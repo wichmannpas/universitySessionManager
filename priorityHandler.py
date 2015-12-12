@@ -175,19 +175,21 @@ class priorityHandler():
         # first case: first entry overlaps second on both sides
         if time[0] < timeCompare[0] and time[1] > timeCompare[1]:
             # return left and right overhead
-            return abs((timeCompare[0] - time[0]) + (time[1] - timeCompare[1]))
+            return (abs(abs((timeCompare[1] - time[0])) +
+                    abs((time[1] - timeCompare[0]))))
         # second case: second entry overlaps first entry on both sides
         elif timeCompare[0] < time[0] and timeCompare[1] > time[1]:
             # return left and right overhead
-            return abs((time[0] - timeCompare[0]) + (timeCompare[1] - time[1]))
+            return (abs(abs((timeCompare[1] - time[0])) +
+                    abs((time[1] - timeCompare[0]))))
         # third case: first entry overlaps second only on the right side
         elif timeCompare[0] < time[1] and timeCompare[1] > time[0]:
             # return right overhead of second entry
-            return abs(timeCompare[1] - time[1])
+            return abs(timeCompare[1] - time[0])
         # fourth case: first entry overlaps second only on the left side
         elif timeCompare[0] < time[1] and timeCompare[1] > time[0]:
             # return left overhead of second entry
-            return abs(time[0] - timeCompare[0])
+            return abs(time[1] - timeCompare[0])
         else:
             # no conflict
             return 0
