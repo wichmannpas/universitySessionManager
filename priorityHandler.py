@@ -18,10 +18,10 @@ class priorityHandler():
         # fill tables with modules from configuration
         self.populateTables(configuration['modules'])
 
-        self.generateAllPossibleCombinations()
+        self.generateAllPossibleSessionCombinations()
 
         # iterate through all possible combinations and generate ratings
-        self.rateCombinations()
+        self.rateSessionCombinations()
 
     def populateDb(self):
         self.cursor.execute('''CREATE TABLE modules
@@ -79,7 +79,7 @@ class priorityHandler():
 
         self.database.commit()
 
-    def generateAllPossibleCombinations(self):
+    def generateAllPossibleSessionCombinations(self):
         # generate list only containing session ids for each module
         sessionIds = []
         for module in self.modules:
@@ -92,9 +92,9 @@ class priorityHandler():
         allCombinations = list(itertools.product(*sessionIds))
 
         # save combinations to database
-        self.savePossibleCombinationsToDb(allCombinations)
+        self.savePossibleSessionCombinationsToDb(allCombinations)
 
-    def savePossibleCombinationsToDb(self, combinations):
+    def savePossibleSessionCombinationsToDb(self, combinations):
         for combination in combinations:
             combinationJson = json.dumps(combination)
             self.cursor.execute('''INSERT INTO combinations (combination,
@@ -102,7 +102,7 @@ class priorityHandler():
                                 VALUES(?, ?)''', [combinationJson, 0])
             self.database.commit()
 
-    def rateCombinations(self):
+    def rateSessionCombinations(self):
         self.cursor.execute('SELECT * FROM combinations')
         combinations = self.cursor.fetchall()
         for combination in combinations:
@@ -168,13 +168,12 @@ class priorityHandler():
                 endTimeCompare = 60 * int(toCompare[3]) + int(toCompare[5])
 
                 # check for overlapping
-                rating -= self.calculateSingleRating([startTime, endTime],
-                                                     [startTimeCompare,
-                                                     endTimeCompare])
+                rating -= self.calculateSessionSingleRating(
+                    [startTime, endTime], [startTimeCompare, endTimeCompare])
 
         return rating
 
-    def calculateSingleRating(self, time, timeCompare):
+    def calculateSessionSingleRating(self, time, timeCompare):
         minDifference = self.settings['minDifference']
         # merge minDifference into times of first event (not to second in order
         # to not have higher impact (otherwise would count multiple times)
