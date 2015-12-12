@@ -71,11 +71,7 @@ class configHandler():
         print(' ===================================')
 
         for session in module['sessions']:
-            endTime = self.getEndTime(session)
-
-            print('  ' + self.getWeekday(session['weekday']) + ', ' +
-                  str(session['hour']) + ':' + str(session['minute']) + '-' +
-                  str(endTime['hour']) + ':' + str(endTime['minute']))
+            print('  ' + self.printSingleSession(session))
 
         return module
 
@@ -108,6 +104,13 @@ class configHandler():
             return 'Saturday'
         elif day == 6:
             return 'Sunday'
+
+    def printSingleSession(self, session):
+        endTime = self.getEndTime(session)
+
+        return (self.getWeekday(session['weekday']) + ', ' +
+                str(session['hour']) + ':' + str(session['minute']) + '-' +
+                str(endTime['hour']) + ':' + str(endTime['minute']))
 
     def saveConfig(self, fileName):
         fileContent = json.dumps({'settings': self.settings,

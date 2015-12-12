@@ -23,8 +23,12 @@ class priorityHandler():
         # iterate through all possible combinations and generate ratings
         self.rateSessionCombinations()
 
-        # generate priorities for all modules
+        # generate priorities for all modules and print them
         self.calculateModuleSessionPriorities()
+        self.printPriorities()
+
+        # close database connection
+        self.database.close()
 
     def populateDb(self):
         self.cursor.execute('''CREATE TABLE modules
@@ -260,3 +264,32 @@ class priorityHandler():
     def savePriorityForSession(self, sessionId, priority):
         self.cursor.execute('UPDATE sessions SET priority=? WHERE sessionId=?',
                             [priority, sessionId[0]])
+
+    def printPriorities(self):
+        print('')
+        print('The following priorities have been calculated:')
+        print('')
+
+        moduleId = 0
+        for module in self.modules:
+            name = self.getModuleNameById(moduleId)['name']
+            print(name)
+            print('='*len(name))
+
+            self.cursor.execute('''SELECT * FROM sessions WHERE module=?
+                                ORDER BY priority''', [moduleId])
+            priorities = self.cursor.fetchall()
+
+            for priority in priorities:
+                session = self.getSessionById(moduleId, priority[0])
+                print(str(priority[8]) + ': ' +
+                      configHandler.configHandler().printSingleSession(session))
+
+            moduleId += 1
+
+    def getModuleNameById(self, id):
+        allModules = self.modules
+        for module in allModules:
+            currentId = list(module.keys())
+            if currentId[0] == id:
+                return list(module.values())[0]
