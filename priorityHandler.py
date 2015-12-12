@@ -5,7 +5,7 @@ import configHandler
 
 
 class priorityHandler():
-    database = sqlite3.connect('tmp.db')  # ':memory:')
+    database = sqlite3.connect(':memory:')
     cursor = database.cursor()
     modules = []
     settings = {}
