@@ -1,6 +1,7 @@
 import sqlite3
 import itertools
 import json
+import math
 import configHandler
 
 
@@ -107,9 +108,8 @@ class priorityHandler():
     def savePossibleSessionCombinationsToDb(self, combinations):
         for combination in combinations:
             combinationJson = json.dumps(combination)
-            self.cursor.execute('''INSERT INTO combinations (combination,
-                                rating)
-                                VALUES(?, ?)''', [combinationJson, 0])
+            self.cursor.execute('''INSERT INTO combinations (combination)
+                                VALUES(?)''', [combinationJson])
             self.database.commit()
 
     def rateSessionCombinations(self):
@@ -279,13 +279,70 @@ class priorityHandler():
         priorityCombinations = list(itertools.product(*allCombinations))
 
         self.savePriorityCombinationsToDb(priorityCombinations)
+        self.ratePriorityCombinations()
+
+    def ratePriorityCombinations(self):
+        self.cursor.execute('SELECT id, combination FROM priorityCombinations')
+        priorityCombinations = self.cursor.fetchall()
+
+        for priorityCombination in priorityCombinations:
+            rating = 0
+            combinations = list(itertools.product(
+                *json.loads(priorityCombination[1])))
+
+            i = 1
+            for combination in combinations:
+                likeliness = self.calculateLikeliness(len(self.modules), i)
+                rating += likeliness * self.getCombinationRating(combination)
+                i += 1
+
+            self.savePriorityCombinationRating(priorityCombination[0], rating)
+        self.database.commit()
+
+    def calculateLikeliness(self, moduleCount, iteration):
+        # the sum of all binomial coefficients is 2^n. We do not consider nC0,
+        # therefore we use 2^n - 1. In total, the possibilities per step can be
+        # calculated by (2^n - 2) * (h - 1) + 1 where n is the number of
+        # considered priorities and h the highest priority occuring (-2 because
+        # we do not want to consider a combination only consisting of h multiple
+        # times, therefore we reduce the number of possibilities per iteration
+        # and add them to the total result)
+        # that formula results in h = ((i - 1)/(2^2 - 2)) + 1 (where i is the
+        # current iteration
+        # the calculation is not absolute excatly, as it is possible to have
+        # modules with less than maxPriority sessions; however it should be
+        # accurate enough given the general limitations of this algorithm
+        highestPriority = ((iteration - 1) / (math.pow(2, 2) - 2)) + 1
+
+        # likeliness is 1 / h, i.e. 1 for the combination of all first
+        # priorities, 1 / 2 when at least one priority 2 is used, 1/10 when one
+        # priority 10 is used etc
+        return 1 / highestPriority
+
+    def savePriorityCombinationRating(self, id, rating):
+        # check if there is already a priority combination with better rating -
+        # then we can truncate this combination immediately
+        self.cursor.execute('SELECT * FROM priorityCombinations WHERE rating>?',
+                            [rating])
+        if len(self.cursor.fetchall()) == 0:
+            self.cursor.execute('''UPDATE priorityCombinations SET rating=?
+                                WHERE id=?''', [rating, id])
+        else:
+            self.cursor.execute('DELETE FROM priorityCombinations WHERE id=?',
+                                [id])
+
+    def getCombinationRating(self, combination):
+        self.cursor.execute(
+            'SELECT rating FROM combinations WHERE combination=?',
+            [json.dumps(combination)])
+        return self.cursor.fetchone()[0]
 
     def savePriorityCombinationsToDb(self, combinations):
         for combination in combinations:
 
             self.cursor.execute('''INSERT INTO priorityCombinations
-                                (combination, rating) VALUES(?, ?)''',
-                                [json.dumps(combination), -1])
+                                (combination) VALUES(?)''',
+                                [json.dumps(combination)])
 
         self.database.commit()
 
