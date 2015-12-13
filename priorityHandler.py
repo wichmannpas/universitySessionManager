@@ -325,7 +325,7 @@ class priorityHandler():
         # and add them to the total result)
         # that formula results in h = ((i - 1)/(2^2 - 2)) + 1 (where i is the
         # current iteration
-        # the calculation is not absolute excatly, as it is possible to have
+        # the calculation is not absolutely exact, as it is possible to have
         # modules with less than maxPriority sessions; however it should be
         # accurate enough given the general limitations of this algorithm
         highestPriority = ((iteration - 1) / (math.pow(2, 2) - 2)) + 1
