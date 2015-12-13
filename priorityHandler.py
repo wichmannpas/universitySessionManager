@@ -6,7 +6,7 @@ import configHandler
 
 
 class priorityHandler():
-    database = sqlite3.connect('/tmp/tmp.db')  # ':memory:')
+    database = sqlite3.connect(':memory:')
     cursor = database.cursor()
     modules = []
     settings = {}
@@ -26,6 +26,9 @@ class priorityHandler():
 
         # generate all possible priority combinations
         self.generateAllPossiblePriorityCombinations()
+
+        # print all priority combinations
+        self.printAllPriotyCombinations()
 
         # close database connection
         self.database.close()
@@ -238,6 +241,27 @@ class priorityHandler():
         self.cursor.execute('UPDATE sessions SET priority=? WHERE sessionId=?',
                             [priority, sessionId[0]])
 
+    def printAllPriotyCombinations(self):
+        self.cursor.execute('''SELECT combination FROM priorityCombinations
+                            ORDER BY rating ASC''')
+        combinations = self.cursor.fetchall()
+
+        if len(combinations) > 1:
+            print('There are multiple combinations with the same rating.')
+
+        for combination in combinations:
+            self.savePriorityCombinationsToSessions(json.loads(combination[0]))
+            self.printPriorities()
+
+    def savePriorityCombinationsToSessions(self, combination):
+        # copies the priorities from a single priority combinations to the
+        # sessions table
+        for module in combination:
+            priority = 1
+            for session in module:
+                self.savePriorityForSession(session, priority)
+                priority += 1
+
     def printPriorities(self):
         print('')
         print('The following priorities have been calculated:')
@@ -255,7 +279,7 @@ class priorityHandler():
 
             for priority in priorities:
                 session = self.getSessionById(moduleId, priority[0])
-                print(str(priority[8]) + ': ' +
+                print(str(priority[7]) + ': ' +
                       configHandler.configHandler().printSingleSession(session))
 
             moduleId += 1
