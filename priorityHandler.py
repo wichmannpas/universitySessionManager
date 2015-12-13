@@ -327,6 +327,9 @@ class priorityHandler():
         if len(self.cursor.fetchall()) == 0:
             self.cursor.execute('''UPDATE priorityCombinations SET rating=?
                                 WHERE id=?''', [rating, id])
+            # delete all combinations with worse rating
+            self.cursor.execute('''DELETE FROM priorityCombinations
+                                WHERE rating<?''', [rating])
         else:
             self.cursor.execute('DELETE FROM priorityCombinations WHERE id=?',
                                 [id])
