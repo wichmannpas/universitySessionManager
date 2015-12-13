@@ -5,7 +5,7 @@ import configHandler
 
 
 class priorityHandler():
-    database = sqlite3.connect(':memory:')
+    database = sqlite3.connect('/tmp/tmp.db')  # ':memory:')
     cursor = database.cursor()
     modules = []
     settings = {}
@@ -23,9 +23,8 @@ class priorityHandler():
         # iterate through all possible combinations and generate ratings
         self.rateSessionCombinations()
 
-        # generate priorities for all modules and print them
-        self.calculateModuleSessionPriorities()
-        self.printPriorities()
+        # generate all possible priority combinations
+        self.generateAllPossiblePriorityCombinations()
 
         # close database connection
         self.database.close()
@@ -42,9 +41,12 @@ class priorityHandler():
                         minute INTEGER,
                         duration INTEGER,
                         userPriority INTEGER,
-                        totalRating INTEGER,
                         priority INTEGER)''')
         self.cursor.execute('''CREATE TABLE combinations
+                       (id INTEGER PRIMARY KEY,
+                       combination TEXT,
+                       rating INTEGER)''')
+        self.cursor.execute('''CREATE TABLE priorityCombinations
                        (id INTEGER PRIMARY KEY,
                        combination TEXT,
                        rating INTEGER)''')
@@ -71,11 +73,11 @@ class priorityHandler():
                 # save session
                 self.cursor.execute('''INSERT INTO sessions (module, weekday,
                                     hour, minute, duration, userPriority,
-                                    totalRating, priority)
-                                    VALUES(?, ?, ?, ?, ?, ?, ?, ?)''',
+                                    priority)
+                                    VALUES(?, ?, ?, ?, ?, ?, ?)''',
                                     [i, session['weekday'], session['hour'],
                                      session['minute'], session['duration'],
-                                     session['userPriority'], 0, -1])
+                                     session['userPriority'], -1])
                 sessionDbId = self.cursor.lastrowid
                 moduleWithIds['sessions'].append({sessionDbId: session})
 
@@ -124,8 +126,6 @@ class priorityHandler():
 
             self.cursor.execute('UPDATE combinations SET rating=? WHERE id=?',
                                 [rating, combination[0]])
-
-            self.addRatingToContainingSessions(combination[1], rating)
 
             self.database.commit()
 
@@ -234,33 +234,6 @@ class priorityHandler():
         self.cursor.execute('DELETE FROM schedule')
         self.database.commit()
 
-    def addRatingToContainingSessions(self, combination, rating):
-        for session in json.loads(combination):
-            # get session
-            self.cursor.execute('SELECT * FROM sessions WHERE sessionId=?',
-                                session)
-            previousRating = int(self.cursor.fetchone()[7])
-            newRating = rating + previousRating
-
-            # update session row
-            self.cursor.execute('''UPDATE sessions SET totalRating=?
-                                WHERE sessionId=?''', [newRating, session[0]])
-
-    def calculateModuleSessionPriorities(self):
-        moduleId = 0
-        for module in self.modules:
-            self.cursor.execute('''SELECT * FROM sessions WHERE module=?
-                                ORDER BY totalRating DESC''', [moduleId])
-            sessions = self.cursor.fetchall()
-
-            currentPriority = 1
-            for session in sessions:
-                self.savePriorityForSession(session, currentPriority)
-                currentPriority += 1
-
-            moduleId += 1
-        self.database.commit()
-
     def savePriorityForSession(self, sessionId, priority):
         self.cursor.execute('UPDATE sessions SET priority=? WHERE sessionId=?',
                             [priority, sessionId[0]])
@@ -287,9 +260,50 @@ class priorityHandler():
 
             moduleId += 1
 
-    def getModuleNameById(self, id):
+    def getModuleById(self, id):
         allModules = self.modules
         for module in allModules:
             currentId = list(module.keys())
             if currentId[0] == id:
-                return list(module.values())[0]
+                return list(module.values())
+
+    def getModuleNameById(self, id):
+        return self.getModuleById(id)[0]
+
+    def generateAllPossiblePriorityCombinations(self):
+        allCombinations = []
+        for module in self.modules:
+            moduleId = list(module.keys())[0]
+            allCombinations.append(
+                self.generatePriorityCombinationsForOneModule(moduleId))
+        priorityCombinations = list(itertools.product(*allCombinations))
+
+        self.savePriorityCombinationsToDb(priorityCombinations)
+
+    def savePriorityCombinationsToDb(self, combinations):
+        for combination in combinations:
+
+            self.cursor.execute('''INSERT INTO priorityCombinations
+                                (combination, rating) VALUES(?, ?)''',
+                                [json.dumps(combination), -1])
+
+        self.database.commit()
+
+    def generatePriorityCombinationsForOneModule(self, moduleId):
+        sessions = self.getSessionIdsOfModule(moduleId)
+        priorities = self.settings['priorities']
+        if priorities > len(sessions):
+            priorities = len(sessions)
+
+        return list(itertools.permutations(sessions, r=priorities))
+
+    def getSessionIdsOfModule(self, moduleId):
+        self.cursor.execute('SELECT sessionId FROM sessions WHERE module=?',
+                            [moduleId])
+        sessions = self.cursor.fetchall()
+
+        # make tuple to list
+        sessionsList = []
+        for session in sessions:
+            sessionsList.append(session[0])
+        return sessions
