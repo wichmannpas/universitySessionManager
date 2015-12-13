@@ -22,7 +22,7 @@ class configHandler():
               ' priority combinations. Therefore you should generate only a '
               'few priorities depending on the amount of modules and sessions'
               ' per module that are available; otherwise the calculation can '
-              'tak a very huge amount of time (e.g. several days)')
+              'tak a very huge amount of time (even several days)')
         self.settings['priorities'] = int(input('How many priorities should be '
                                                 'generated? (i.e. 3): '))
 
