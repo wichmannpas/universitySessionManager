@@ -300,19 +300,15 @@ class priorityHandler():
             moduleId = list(module.keys())[0]
             allCombinations.append(
                 self.generatePriorityCombinationsForOneModule(moduleId))
-        priorityCombinations = list(itertools.product(*allCombinations))
+        priorityCombinations = itertools.product(*allCombinations)
 
-        self.savePriorityCombinationsToDb(priorityCombinations)
-        self.ratePriorityCombinations()
+        self.ratePriorityCombinations(priorityCombinations)
 
-    def ratePriorityCombinations(self):
-        self.cursor.execute('SELECT id, combination FROM priorityCombinations')
-        priorityCombinations = self.cursor.fetchall()
-
+    def ratePriorityCombinations(self, priorityCombinations):
         for priorityCombination in priorityCombinations:
             rating = 0
-            combinations = list(itertools.product(
-                *json.loads(priorityCombination[1])))
+            combinations = itertools.product(
+                *priorityCombination)
 
             i = 1
             for combination in combinations:
@@ -320,7 +316,7 @@ class priorityHandler():
                 rating += likeliness * self.getCombinationRating(combination)
                 i += 1
 
-            self.savePriorityCombinationRating(priorityCombination[0], rating)
+            self.savePriorityCombinationRating(priorityCombination, rating)
         self.database.commit()
 
     def calculateLikeliness(self, moduleCount, iteration):
@@ -343,35 +339,25 @@ class priorityHandler():
         # priority 10 is used etc
         return 1 / highestPriority
 
-    def savePriorityCombinationRating(self, id, rating):
+    def savePriorityCombinationRating(self, combination, rating):
         # check if there is already a priority combination with better rating -
         # then we can truncate this combination immediately
         self.cursor.execute('SELECT * FROM priorityCombinations WHERE rating>?',
                             [rating])
         if len(self.cursor.fetchall()) == 0:
-            self.cursor.execute('''UPDATE priorityCombinations SET rating=?
-                                WHERE id=?''', [rating, id])
+            self.cursor.execute('''INSERT INTO priorityCombinations
+                                (combination, rating)
+                                VALUES (?, ?)''', [json.dumps(combination),
+                                                   rating])
             # delete all combinations with worse rating
             self.cursor.execute('''DELETE FROM priorityCombinations
                                 WHERE rating<?''', [rating])
-        else:
-            self.cursor.execute('DELETE FROM priorityCombinations WHERE id=?',
-                                [id])
 
     def getCombinationRating(self, combination):
         self.cursor.execute(
             'SELECT rating FROM combinations WHERE combination=?',
             [json.dumps(combination)])
         return self.cursor.fetchone()[0]
-
-    def savePriorityCombinationsToDb(self, combinations):
-        for combination in combinations:
-
-            self.cursor.execute('''INSERT INTO priorityCombinations
-                                (combination) VALUES(?)''',
-                                [json.dumps(combination)])
-
-        self.database.commit()
 
     def generatePriorityCombinationsForOneModule(self, moduleId):
         sessions = self.getSessionIdsOfModule(moduleId)
