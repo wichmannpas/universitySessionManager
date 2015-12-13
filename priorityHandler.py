@@ -367,9 +367,4 @@ class priorityHandler():
         self.cursor.execute('SELECT sessionId FROM sessions WHERE module=?',
                             [moduleId])
         sessions = self.cursor.fetchall()
-
-        # make tuple to list
-        sessionsList = []
-        for session in sessions:
-            sessionsList.append(session[0])
         return sessions
