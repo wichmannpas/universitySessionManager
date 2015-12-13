@@ -62,7 +62,6 @@ class priorityHandler():
                        minuteStart INTEGER,
                        minuteEnd INTEGER,
                        userPriority INTEGER)''')
-        self.database.commit()
 
     def populateTables(self, configuration):
         i = 0
@@ -91,8 +90,6 @@ class priorityHandler():
 
             i += 1
 
-        self.database.commit()
-
     def generateAllPossibleSessionCombinations(self):
         # generate list only containing session ids for each module
         sessionIds = []
@@ -113,7 +110,6 @@ class priorityHandler():
             combinationJson = json.dumps(combination)
             self.cursor.execute('''INSERT INTO combinations (combination)
                                 VALUES(?)''', [combinationJson])
-            self.database.commit()
 
     def rateSessionCombinations(self):
         self.cursor.execute('SELECT * FROM combinations')
@@ -129,8 +125,6 @@ class priorityHandler():
 
             self.cursor.execute('UPDATE combinations SET rating=? WHERE id=?',
                                 [rating, combination[0]])
-
-            self.database.commit()
 
     def generateSchedule(self, combination):
         i = 0
@@ -152,7 +146,6 @@ class priorityHandler():
                                 VALUES(?, ?, ?, ?, ?, ?)''',
                                 [weekday, hourStart, hourEnd, minuteStart,
                                  minuteEnd, userPriority])
-            self.database.commit()
 
             i += 1
 
@@ -235,7 +228,6 @@ class priorityHandler():
 
     def emptySchedule(self):
         self.cursor.execute('DELETE FROM schedule')
-        self.database.commit()
 
     def savePriorityForSession(self, sessionId, priority):
         self.cursor.execute('UPDATE sessions SET priority=? WHERE sessionId=?',
@@ -317,7 +309,6 @@ class priorityHandler():
                 i += 1
 
             self.savePriorityCombinationRating(priorityCombination, rating)
-        self.database.commit()
 
     def calculateLikeliness(self, moduleCount, iteration):
         # the sum of all binomial coefficients is 2^n. We do not consider nC0,
