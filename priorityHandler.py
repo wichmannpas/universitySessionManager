@@ -103,7 +103,7 @@ class priorityHandler():
             for sessionId in thisSessionIds:
                 thisSessions.append(list(sessionId.keys()))
             sessionIds.append(thisSessions)
-        allCombinations = list(itertools.product(*sessionIds))
+        allCombinations = itertools.product(*sessionIds)
 
         # save combinations to database
         self.savePossibleSessionCombinationsToDb(allCombinations)
@@ -365,7 +365,7 @@ class priorityHandler():
         if priorities > len(sessions):
             priorities = len(sessions)
 
-        return list(itertools.permutations(sessions, r=priorities))
+        return itertools.permutations(sessions, r=priorities)
 
     def getSessionIdsOfModule(self, moduleId):
         self.cursor.execute('SELECT sessionId FROM sessions WHERE module=?',
