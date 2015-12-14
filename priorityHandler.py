@@ -322,6 +322,9 @@ class priorityHandler():
             for combination in combinations:
                 likeliness = self.calculateLikeliness(len(self.modules), i)
                 rating += likeliness * self.getCombinationRating(combination)
+                if likeliness < 0.05:
+                    break  # significantly decreases the runtime for big data
+                    # sets (however the results have little less quality
                 i += 1
 
             totalCount += 1
