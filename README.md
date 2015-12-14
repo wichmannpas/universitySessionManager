@@ -16,7 +16,7 @@ If you have multiple events in a module (i.e. lectures and practices at the univ
 
 After you have created the configuration file, start the program again and type *l* to load the previously created configuration. After you have entered the name of the configuration file, the calculation will begin.
 
-Depending on the number of possibilities, the execution of the script can take some time; a lot of possibilities can take some hours. When you want to calculate all priorties of your university schedule (and not e.g. only the first 3), the execution can take many hours.
+Depending on the number of possibilities, the execution of the script can take some time; a lot of possibilities can take some hours or even days. When you want to calculate all priorties of your university schedule (and not e.g. only the first 3), the execution can take unrealistically long time. The program calculates an estimated remaining time; this enables you to see if the execution time will be realistic. A basic example of my timetable would take half a million years to calculate all priorities (which would be about 6 modules with 10 sessions at most, resulting in 2528292372480000 necessary iterations).
 
 How the calculation is done
 ---------------------------
