@@ -8,6 +8,8 @@ import itertools
 import json
 import math
 import configHandler
+import time
+import sys
 
 
 class priorityHandler():
@@ -15,6 +17,7 @@ class priorityHandler():
     cursor = database.cursor()
     modules = []
     settings = {}
+    totalCombinationsInCurrentStep = 0
 
     def __init__(self, configuration):
         self.populateDb()
@@ -96,6 +99,7 @@ class priorityHandler():
             i += 1
 
     def generateAllPossibleSessionCombinations(self):
+        print('Step 1/2: Generating all possible combinations of sessions')
         # generate list only containing session ids for each module
         sessionIds = []
         for module in self.modules:
@@ -292,16 +296,23 @@ class priorityHandler():
         return self.getModuleById(id)[0]
 
     def generateAllPossiblePriorityCombinations(self):
+        print('Step 2/2: Rating all possible priority combinations')
+
         allCombinations = []
+        totalCombinations = 1
         for module in self.modules:
             moduleId = list(module.keys())[0]
+            self.totalCombinationsInCurrentStep = 1
             allCombinations.append(
                 self.generatePriorityCombinationsForOneModule(moduleId))
+            totalCombinations *= self.totalCombinationsInCurrentStep
         priorityCombinations = itertools.product(*allCombinations)
 
-        self.ratePriorityCombinations(priorityCombinations)
+        self.ratePriorityCombinations(priorityCombinations, totalCombinations)
 
-    def ratePriorityCombinations(self, priorityCombinations):
+    def ratePriorityCombinations(self, priorityCombinations, totalCombinations):
+        totalCount = 0
+        startTime = time.time()
         for priorityCombination in priorityCombinations:
             rating = 0
             combinations = itertools.product(
@@ -313,7 +324,32 @@ class priorityHandler():
                 rating += likeliness * self.getCombinationRating(combination)
                 i += 1
 
+            totalCount += 1
+            # do not calculate progress every iteration
+            percentage = (totalCount / totalCombinations) * 100
+
+            currentTime = time.time()
+            deltaTime = currentTime - startTime
+            if (percentage / 100) > 0:
+                estimatedTotalTime = deltaTime / (percentage / 100)
+                estimatedRemaining = estimatedTotalTime - deltaTime
+            else:
+                estimatedTotalTime = 0
+                estimatedRemaining = None
+
+            sys.stdout.write("\rIteration {:d} of {:d} ({:f}".format(
+                totalCount, totalCombinations, percentage) + "%)" +
+                " remaining time: " + self.parseTime(estimatedRemaining))
+
             self.savePriorityCombinationRating(priorityCombination, rating)
+
+    def parseTime(self, seconds):
+        if seconds is None:
+            return "unavailable"
+        hours = math.floor(seconds / 3600)
+        minutes = math.floor((seconds % 3600) / 60)
+        seconds = seconds % 60
+        return "{:2d}:{:2d}:{:2d}".format(hours, minutes, int(seconds))
 
     def calculateLikeliness(self, moduleCount, iteration):
         # the sum of all binomial coefficients is 2^n. We do not consider nC0,
@@ -361,7 +397,16 @@ class priorityHandler():
         if priorities > len(sessions):
             priorities = len(sessions)
 
+        self.getPermutationCount(
+            len(sessions), priorities)
         return itertools.permutations(sessions, r=priorities)
+
+    def getPermutationCount(self, n, k):
+        lastFactor = n - k + 1
+        permutations = 1
+        for factor in reversed(range(lastFactor, n + 1)):
+            permutations *= factor
+        self.totalCombinationsInCurrentStep = permutations
 
     def getSessionIdsOfModule(self, moduleId):
         self.cursor.execute('SELECT sessionId FROM sessions WHERE module=?',
