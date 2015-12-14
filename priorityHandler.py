@@ -255,6 +255,8 @@ class priorityHandler():
             self.printPriorities()
 
     def savePriorityCombinationsToSessions(self, combination):
+        # unset all session priorities
+        self.cursor.execute('UPDATE sessions SET priority=-1')
         # copies the priorities from a single priority combinations to the
         # sessions table
         for module in combination:
@@ -274,8 +276,8 @@ class priorityHandler():
             print(name)
             print('='*len(name))
 
-            self.cursor.execute('''SELECT * FROM sessions WHERE module=?
-                                ORDER BY priority''', [moduleId])
+            self.cursor.execute('''SELECT * FROM sessions WHERE module=? AND
+                                priority>0 ORDER BY priority''', [moduleId])
             priorities = self.cursor.fetchall()
 
             for priority in priorities:
